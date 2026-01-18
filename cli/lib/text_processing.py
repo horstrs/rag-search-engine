@@ -1,5 +1,5 @@
 import string
-
+from .search_utils import load_stopwords
 
 def preprocess_text(query: str) -> [str]:
     # Convert to lower text
@@ -12,7 +12,11 @@ def preprocess_text(query: str) -> [str]:
 
     # Split query in tokens
     tokens = preprocess_text.split()
-    preprocess_text = [t for t in tokens if t.strip()]
+    tokenized_query = [t for t in tokens if t.strip()]
+
+    # Remove stopwords
+    stopwords = load_stopwords()
+    tokenized_query = [t for t in tokenized_query if t not in stopwords]
 
     # Return preprocess_text
-    return preprocess_text
+    return tokenized_query
