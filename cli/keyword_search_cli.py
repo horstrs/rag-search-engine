@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 from lib.keyword_search import retrieve_movies_with_query_in_title
 from lib.search_utils import load_movies
+from lib.text_processing import preprocess_text
 
 import argparse
 
@@ -19,7 +20,8 @@ def main() -> None:
     match args.command:
         case "search":
             print(f"Searching for: {args.query}")
-            result = retrieve_movies_with_query_in_title(movies, args.query)
+            processed_query = preprocess_text(args.query)
+            result = retrieve_movies_with_query_in_title(movies, processed_query)
             for i, movie in enumerate(result, 1):
                 print(f"{i}. {movie['title']}")
         case _:
