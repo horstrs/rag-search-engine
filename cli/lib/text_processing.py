@@ -1,5 +1,8 @@
 import string
+
 from .search_utils import load_stopwords
+from nltk.stem import PorterStemmer
+
 
 def preprocess_text(query: str) -> [str]:
     # Convert to lower text
@@ -17,6 +20,10 @@ def preprocess_text(query: str) -> [str]:
     # Remove stopwords
     stopwords = load_stopwords()
     tokenized_query = [t for t in tokenized_query if t not in stopwords]
+
+    # Stem tokens
+    stemmer = PorterStemmer()
+    tokenized_query = [stemmer.stem(t) for t in tokenized_query]
 
     # Return preprocess_text
     return tokenized_query
