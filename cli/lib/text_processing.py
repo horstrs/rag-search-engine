@@ -4,7 +4,7 @@ from .search_utils import load_stopwords
 from nltk.stem import PorterStemmer
 
 
-def preprocess_text(query: str) -> [str]:
+def preprocess_text(query: str) -> list[str]:
     # Convert to lower text
     preprocess_text = query.lower()
 
