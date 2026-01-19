@@ -11,16 +11,22 @@ def build_command() -> None:
     inverted_index.build(movies)
     inverted_index.save()
 
+
 def search_command(query: str, limit: int = DEFAULT_SEARCH_LIMIT) -> list[dict]:
-    movies = load_movies()
-    results = []
-    for movie in movies:
-        query_tokens = preprocess_text(query)
-        title_tokens = preprocess_text(movie["title"])
-        if has_matching_token(query_tokens, title_tokens):
-            results.append(movie)
+    inverted_index = InvertedIndex()
+    inverted_index.load()
+    seen, results = set(), []
+    query_tokens = preprocess_text(query)
+
+    for token in query_tokens:
+        token_ids = inverted_index.get_documents(token)
+        for id in token_ids:
+            if id in seen:
+                continue
+            seen.add(id)
+            results.append(inverted_index.docmap[id])
             if len(results) >= limit:
-                break
+                return results
 
     return results
 

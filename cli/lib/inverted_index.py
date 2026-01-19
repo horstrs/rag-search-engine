@@ -22,8 +22,8 @@ class InvertedIndex:
 
     def get_documents(self, term: str) -> list[str]:
         query = term.lower()
-        result = sorted(list(self.index[query]))
-        return result
+        result = self.index.get(query, set())
+        return sorted(list(result))
 
     def build(self, movie_lib: list[dict]) -> None:
         for movie in movie_lib:
@@ -33,10 +33,24 @@ class InvertedIndex:
 
     def save(self) -> None:
         if not os.path.exists(CACHE_DIR):
-            os.mkdir(CACHE_DIR)
+            os.makedirs(CACHE_DIR, exist_ok=True)
 
         with open(CACHE_INDEX_PATH, "wb") as file:
             pickle.dump(self.index, file)
 
         with open(CACHE_DOCMAP_PATH, "wb") as file:
             pickle.dump(self.docmap, file)
+
+    def load(self) -> None:
+        if not os.path.exists(CACHE_INDEX_PATH):
+            raise FileNotFoundError(f"{CACHE_INDEX_PATH} not found")
+
+        if not os.path.exists(CACHE_DOCMAP_PATH):
+            raise FileNotFoundError(f"{CACHE_DOCMAP_PATH} not found")
+        
+        with open(CACHE_INDEX_PATH, "rb") as file:
+            self.index = pickle.load(file)
+
+        with open(CACHE_DOCMAP_PATH, "rb") as file:
+            self.docmap = pickle.load(file)
+        
