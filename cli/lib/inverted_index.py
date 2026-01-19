@@ -10,6 +10,7 @@ CACHE_DIR = os.path.join(PROJECT_ROOT, "cache")
 CACHE_INDEX_PATH = os.path.join(CACHE_DIR, "index.pkl")
 CACHE_DOCMAP_PATH = os.path.join(CACHE_DIR, "docmap.pkl")
 CACHE_TERM_FREQ_PATH = os.path.join(CACHE_DIR, "term_frequencies.pkl")
+BM25_K1 = 1.5
 
 
 class InvertedIndex:
@@ -81,3 +82,31 @@ class InvertedIndex:
         total_doc_count = len(self.docmap)
         term_match_doc_count = len(self.get_documents(token[0]))
         return math.log((total_doc_count + 1) / (term_match_doc_count + 1))
+
+    def get_tfidf(self, doc_id: int, term: str) -> float:
+        token = preprocess_text(term)
+        if len(token) != 1:
+            raise ValueError("term must be a single token")
+        tf = self.get_tf(doc_id, term)
+        idf = self.get_idf(term)
+        return tf * idf
+
+    def get_bm25_idf(self, term: str) -> float:
+        token = preprocess_text(term)
+        if len(token) != 1:
+            raise ValueError("term must be a single token")
+        total_doc_count = len(self.docmap)
+        term_match_doc_count = len(self.get_documents(token[0]))
+        return math.log(
+            (total_doc_count - term_match_doc_count + 0.5)
+            / (term_match_doc_count + 0.5)
+            + 1
+        )
+
+    def get_bm25_tf(self, doc_id: int, term: str, k1: float = BM25_K1) -> float:
+        token = preprocess_text(term)
+        if len(token) != 1:
+            raise ValueError("term must be a single token")
+        raw_tf = self.get_tf(doc_id, token[0])
+        saturated_tf = (raw_tf * (k1 + 1)) / (raw_tf + k1)
+        return saturated_tf

@@ -46,9 +46,19 @@ def idf_command(term: str) -> float:
 def tfidf_command(doc_id: int, term: str) -> float:
     inverted_index = InvertedIndex()
     inverted_index.load()
-    tf = inverted_index.get_tf(doc_id, term)
-    idf = inverted_index.get_idf(term)
-    return tf * idf
+    return inverted_index.get_tfidf(doc_id, term)
+
+
+def bm25_idf_command(term: str) -> float:
+    inverted_index = InvertedIndex()
+    inverted_index.load()
+    return inverted_index.get_bm25_idf(term)
+
+
+def bm25_tf_command(doc_id: int, term: str) -> float:
+    inverted_index = InvertedIndex()
+    inverted_index.load()
+    return inverted_index.get_bm25_tf(doc_id, term)
 
 
 def retrieve_movies_with_query_in_title(
