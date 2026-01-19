@@ -1,17 +1,8 @@
 from lib.keyword_search import InvertedIndex  # or correct import path
-from lib.text_processing import preprocess_text
+from lib.search_utils import load_movies
 
 idx = InvertedIndex()
 idx.load()
-
-print("total docs:", len(idx.docmap))
-token = preprocess_text("grizzly")
-print("docs for 'grizzly':", idx.get_documents(token[0]))
-print("count for 'grizzly':", len(idx.get_documents(token[0])))
-
-print("docs for 'actor':", idx.get_documents("actor"))
-print("count for 'actor':", len(idx.get_documents("actor")))
-
-
-print(preprocess_text("Grizzly"))  # what is this?
-print(preprocess_text("grizzly bear"))  # and this?
+idx.build(load_movies())
+print(idx.term_frequency[424])  # should show a Counter with words
+print(idx.get_tf(424, "bear"))  # should be > 0 if “bear” is in that movie

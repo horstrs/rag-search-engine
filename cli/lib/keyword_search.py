@@ -43,6 +43,14 @@ def idf_command(term: str) -> float:
     return inverted_index.get_idf(term)
 
 
+def tfidf_command(doc_id: int, term: str) -> float:
+    inverted_index = InvertedIndex()
+    inverted_index.load()
+    tf = inverted_index.get_tf(doc_id, term)
+    idf = inverted_index.get_idf(term)
+    return tf * idf
+
+
 def retrieve_movies_with_query_in_title(
     movies: dict, query_tokens: list[str], lenght_limit: int = DEFAULT_SEARCH_LIMIT
 ) -> list[dict]:

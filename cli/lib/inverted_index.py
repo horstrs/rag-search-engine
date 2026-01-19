@@ -20,15 +20,15 @@ class InvertedIndex:
 
     def __add_document(self, doc_id: int, text: str) -> None:
         tokenized_text = preprocess_text(text)
-        for token in tokenized_text:
+        for token in set(tokenized_text):
             self.index[token].add(doc_id)
-            self.term_frequency[doc_id].update(token)
+        self.term_frequency[doc_id].update(tokenized_text)
 
     def build(self, movie_lib: list[dict]) -> None:
         for movie in movie_lib:
             movie_text = f"{movie['title']} {movie['description']}"
-            self.__add_document(movie["id"], movie_text)
             self.docmap[movie["id"]] = movie
+            self.__add_document(movie["id"], movie_text)
 
     def save(self) -> None:
         if not os.path.exists(CACHE_DIR):
