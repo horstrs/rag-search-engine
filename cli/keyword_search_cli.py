@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-from lib.keyword_search import search_command, build_command, tf_command
+from lib.keyword_search import search_command, build_command, tf_command, idf_command
 
 
 import argparse
@@ -24,6 +24,11 @@ def main() -> None:
         "term", type=str, help="Term to retrieve the frequency in the given Document ID"
     )
 
+    idf_parser = subparsers.add_parser(
+        "idf", help="Return the inverse index frequency of a given term"
+    )
+    idf_parser.add_argument("term", help="The term to retrieve the idf")
+
     args = parser.parse_args()
 
     match args.command:
@@ -39,10 +44,13 @@ def main() -> None:
                 print(f"{i}. ({movie['id']}) {movie['title']}")
 
         case "tf":
-            result = tf_command(args.doc_id, args.term)
-            print(
-                f"The term {args.term} appears {result} times in Document ID {args.doc_id}"
-            )
+            tf = tf_command(args.doc_id, args.term)
+            print(f"Term frequency of '{args.term}' in document '{args.doc_id}': {tf}")
+
+        case "idf":
+            idf = idf_command(args.term)
+            print(f"Inverse document frequency of '{args.term}': {idf:.2f}")
+
         case _:
             parser.print_help()
 

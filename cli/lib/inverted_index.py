@@ -1,5 +1,6 @@
 import pickle
 import os
+import math
 
 from .text_processing import preprocess_text
 from .search_utils import PROJECT_ROOT
@@ -21,7 +22,7 @@ class InvertedIndex:
         tokenized_text = preprocess_text(text)
         for token in tokenized_text:
             self.index[token].add(doc_id)
-            self.term_frequency[doc_id][token] += 1
+            self.term_frequency[doc_id].update(token)
 
     def build(self, movie_lib: list[dict]) -> None:
         for movie in movie_lib:
@@ -69,6 +70,14 @@ class InvertedIndex:
     def get_tf(self, doc_id: int, term: str) -> int:
         token = preprocess_text(term)
         if len(token) != 1:
-            raise ValueError("Only one token expected when getting token frequency")
-        frequency = self.term_frequency[doc_id][term]
+            raise ValueError("term must be a single token")
+        frequency = self.term_frequency[doc_id][token[0]]
         return frequency
+
+    def get_idf(self, term: str) -> float:
+        token = preprocess_text(term)
+        if len(token) != 1:
+            raise ValueError("term must be a single token")
+        total_doc_count = len(self.docmap)
+        term_match_doc_count = len(self.get_documents(token[0]))
+        return math.log((total_doc_count + 1) / (term_match_doc_count + 1))
