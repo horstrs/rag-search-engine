@@ -10,7 +10,9 @@ CACHE_DIR = os.path.join(PROJECT_ROOT, "cache")
 CACHE_INDEX_PATH = os.path.join(CACHE_DIR, "index.pkl")
 CACHE_DOCMAP_PATH = os.path.join(CACHE_DIR, "docmap.pkl")
 CACHE_TERM_FREQ_PATH = os.path.join(CACHE_DIR, "term_frequencies.pkl")
+CACHE_DOC_LENGTHS_PATH = os.path.join(CACHE_DIR, "doc_lengths.pkl")
 BM25_K1 = 1.5
+BM25_B = 0.75
 
 
 class InvertedIndex:
@@ -18,12 +20,19 @@ class InvertedIndex:
         self.index = defaultdict(set)
         self.docmap = {}
         self.term_frequency = defaultdict(Counter)
+        self.doc_lengths = {}
 
     def __add_document(self, doc_id: int, text: str) -> None:
         tokenized_text = preprocess_text(text)
         for token in set(tokenized_text):
             self.index[token].add(doc_id)
         self.term_frequency[doc_id].update(tokenized_text)
+        self.doc_lengths[doc_id] = len(tokenized_text)
+
+    def __get_avg_doc_length(self) -> float:
+        if not self.doc_lengths or len(self.doc_lengths) == 0:
+            return 0.0
+        return sum(self.doc_lengths.values()) / len(self.doc_lengths)
 
     def build(self, movie_lib: list[dict]) -> None:
         for movie in movie_lib:
@@ -44,6 +53,9 @@ class InvertedIndex:
         with open(CACHE_TERM_FREQ_PATH, "wb") as file:
             pickle.dump(self.term_frequency, file)
 
+        with open(CACHE_DOC_LENGTHS_PATH, "wb") as file:
+            pickle.dump(self.doc_lengths, file)
+
     def load(self) -> None:
         if not os.path.exists(CACHE_INDEX_PATH):
             raise FileNotFoundError(f"{CACHE_INDEX_PATH} not found")
@@ -54,6 +66,9 @@ class InvertedIndex:
         if not os.path.exists(CACHE_TERM_FREQ_PATH):
             raise FileNotFoundError(f"{CACHE_TERM_FREQ_PATH} not found")
 
+        if not os.path.exists(CACHE_DOC_LENGTHS_PATH):
+            raise FileNotFoundError(f"{CACHE_DOC_LENGTHS_PATH} not found")
+
         with open(CACHE_INDEX_PATH, "rb") as file:
             self.index = pickle.load(file)
 
@@ -62,6 +77,9 @@ class InvertedIndex:
 
         with open(CACHE_TERM_FREQ_PATH, "rb") as file:
             self.term_frequency = pickle.load(file)
+
+        with open(CACHE_DOC_LENGTHS_PATH, "rb") as file:
+            self.doc_lengths = pickle.load(file)
 
     def get_documents(self, term: str) -> list[str]:
         query = term.lower()
@@ -103,10 +121,20 @@ class InvertedIndex:
             + 1
         )
 
-    def get_bm25_tf(self, doc_id: int, term: str, k1: float = BM25_K1) -> float:
+    def get_bm25_tf(
+        self, doc_id: int, term: str, k1: float = BM25_K1, b: float = BM25_B
+    ) -> float:
         token = preprocess_text(term)
         if len(token) != 1:
             raise ValueError("term must be a single token")
         raw_tf = self.get_tf(doc_id, token[0])
-        saturated_tf = (raw_tf * (k1 + 1)) / (raw_tf + k1)
+        avg_doc_length = self.__get_avg_doc_length()
+        if avg_doc_length > 0:
+            length_normalization = (
+                1 - b + b * (self.doc_lengths[doc_id] / avg_doc_length)
+            )
+        else:
+            length_normalization = 1
+        saturated_tf = (raw_tf * (k1 + 1)) / (raw_tf + k1 * length_normalization)
+
         return saturated_tf
