@@ -31,6 +31,12 @@ def search_command(query: str, limit: int = DEFAULT_SEARCH_LIMIT) -> list[dict]:
     return results
 
 
+def tf_command(doc_id: int, term: str) -> int:
+    inverted_index = InvertedIndex()
+    inverted_index.load()
+    return inverted_index.get_tf(doc_id, term)
+
+
 def retrieve_movies_with_query_in_title(
     movies: dict, query_tokens: list[str], lenght_limit: int = DEFAULT_SEARCH_LIMIT
 ) -> list[dict]:
