@@ -1,5 +1,10 @@
 #!/usr/bin/env python3
-from lib.semantic_search import verify_model, embed_text, verify_embeddings
+from lib.semantic_search import (
+    verify_model,
+    embed_text,
+    verify_embeddings,
+    embed_query_text,
+)
 
 import argparse
 
@@ -22,6 +27,13 @@ def main():
         "text", type=str, help="Text to generate the embedding for"
     )
 
+    embed_query_parser = subparsers.add_parser(
+        "embedquery", help="Generate an embedding for a query"
+    )
+    embed_query_parser.add_argument(
+        "query", type=str, help="Query to generate the embedding for"
+    )
+
     args = parser.parse_args()
 
     match args.command:
@@ -31,6 +43,8 @@ def main():
             verify_embeddings()
         case "embed_text":
             embed_text(args.text)
+        case "embedquery":
+            embed_query_text(args.query)
         case _:
             parser.print_help()
 
