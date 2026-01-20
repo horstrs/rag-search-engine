@@ -61,6 +61,12 @@ def bm25_tf_command(doc_id: int, term: str, k1: float = BM25_K1, b: float = BM25
     return inverted_index.get_bm25_tf(doc_id, term, k1, b)
 
 
+def bm25_search_command(query: str, limit) -> list[dict, float]:
+    inverted_index = InvertedIndex()
+    inverted_index.load()
+    return inverted_index.bm25_search(query, limit)
+
+
 def retrieve_movies_with_query_in_title(
     movies: dict, query_tokens: list[str], lenght_limit: int = DEFAULT_SEARCH_LIMIT
 ) -> list[dict]:

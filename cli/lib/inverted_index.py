@@ -138,3 +138,18 @@ class InvertedIndex:
         saturated_tf = (raw_tf * (k1 + 1)) / (raw_tf + k1 * length_normalization)
 
         return saturated_tf
+
+    def bm25(self, doc_id: int, term: str) -> float:
+        return self.get_bm25_idf(term) * self.get_bm25_tf(doc_id, term)
+    
+    def bm25_search(self, query: str, limit:int) -> list[dict, float]:
+        tokenized_query = preprocess_text(query)
+        scores = defaultdict(int)
+        for doc in self.docmap:
+            for token in tokenized_query:
+                scores[doc] += self.bm25(doc, token)
+        top_sorted_scores = dict(sorted(scores.items(), key=lambda item:item[1], reverse=True)[:limit])
+        result = []
+        for id, score in top_sorted_scores.items():
+            result.append((self.docmap[id], score))
+        return result
