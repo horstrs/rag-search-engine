@@ -1,5 +1,6 @@
 import numpy as np
 import os
+import re
 
 from sentence_transformers import SentenceTransformer
 from .search_utils import PROJECT_ROOT, load_movies
@@ -130,3 +131,26 @@ def search_command(query: str, limit: int) -> None:
     for i, hit in enumerate(hits, 1):
         print(f"{i}. {hit['title']} (score: {hit['score']:.4f})")
         print(f"{hit['description'][:100]}... \n")
+
+
+def chunk_command(text: str, chunk_size: int, overlap: int) -> None:
+    print(f"Chunking {len(text)} characters")
+    words = text.split(" ")
+    join_blocks_in_chunks(words, chunk_size, overlap)
+
+
+def semantic_chunk_command(text: str, chunk_size: int, overlap: int) -> None:
+    print(f"Semantically chunking {len(text)} characters")
+    sentences = re.split(r"(?<=[.!?])\s+", text)
+    join_blocks_in_chunks(sentences, chunk_size, overlap)
+
+
+def join_blocks_in_chunks(blocks: list[str], chunk_size: int, overlap: int) -> None:
+    i = 1
+    while True:
+        chunk = " ".join(blocks[:chunk_size])
+        print(f"{i}. {chunk}")
+        if chunk_size >= len(blocks):
+            return
+        blocks = blocks[chunk_size - overlap :]
+        i += 1
