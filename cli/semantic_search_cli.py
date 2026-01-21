@@ -5,9 +5,9 @@ from lib.semantic_search import (
     verify_embeddings,
     embed_query_text,
     search_command,
-    chunk_command,
-    semantic_chunk_command,
 )
+
+from lib.chunked_semantic_search import chunk_text, semantic_chunk_text, embed_command
 
 import argparse
 
@@ -89,6 +89,11 @@ def main():
         help="Number of words that overlaps chunk boundaries",
     )
 
+    semantic_chunk_parser = subparsers.add_parser(
+        "embed_chunks",
+        help="Get the embed chunk and metadata either from cache or scratch",
+    )
+
     args = parser.parse_args()
 
     match args.command:
@@ -103,9 +108,17 @@ def main():
         case "search":
             search_command(args.query, args.limit)
         case "chunk":
-            chunk_command(args.text, args.chunk_size, args.overlap)
+            print(f"Chunking {len(args.text)} characters")
+            chunks = chunk_text(args.text, args.chunk_size, args.overlap)
+            for i, chunk in enumerate(chunks, 1):
+                print(f"{i}. {chunk}")
         case "semantic_chunk":
-            semantic_chunk_command(args.text, args.max_chunk_size, args.overlap)
+            print(f"Semantically chunking {len(args.text)} characters")
+            chunks = semantic_chunk_text(args.text, args.max_chunk_size, args.overlap)
+            for i, chunk in enumerate(chunks, 1):
+                print(f"{i}. {chunk}")
+        case "embed_chunks":
+            embed_command()
         case _:
             parser.print_help()
 
