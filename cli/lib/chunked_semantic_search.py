@@ -125,8 +125,12 @@ def chunk_text(text: str, chunk_size: int, overlap: int) -> list[str]:
 
 
 def semantic_chunk_text(text: str, chunk_size: int, overlap: int) -> list[str]:
+    text = text.strip()
+    if not text or len(text) == 0:
+        return []
     sentences = re.split(r"(?<=[.!?])\s+", text)
-    return join_blocks_in_chunks(sentences, chunk_size, overlap)
+    cleaned_sentences = [s.strip() for s in sentences if s.strip()]
+    return join_blocks_in_chunks(cleaned_sentences, chunk_size, overlap)
 
 
 def join_blocks_in_chunks(
