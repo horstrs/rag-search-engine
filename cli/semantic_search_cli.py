@@ -7,7 +7,12 @@ from lib.semantic_search import (
     search_command,
 )
 
-from lib.chunked_semantic_search import chunk_text, semantic_chunk_text, embed_command
+from lib.chunked_semantic_search import (
+    chunk_text,
+    semantic_chunk_text,
+    embed_command,
+    search_chunked_command,
+)
 
 import argparse
 
@@ -94,6 +99,21 @@ def main():
         help="Get the embed chunk and metadata either from cache or scratch",
     )
 
+    search_chunked_parser = subparsers.add_parser(
+        "search_chunked",
+        help="Search for query in chunked embeddings",
+    )
+    search_chunked_parser.add_argument(
+        "query", type=str, help="Query to search using embedded chunks"
+    )
+    search_chunked_parser.add_argument(
+        "--limit",
+        type=int,
+        nargs="?",
+        default=5,
+        help="Number of results to return. Default 5",
+    )
+
     args = parser.parse_args()
 
     match args.command:
@@ -119,6 +139,8 @@ def main():
                 print(f"{i}. {chunk}")
         case "embed_chunks":
             embed_command()
+        case "search_chunked":
+            search_chunked_command(args.query, args.limit)
         case _:
             parser.print_help()
 
