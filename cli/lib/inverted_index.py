@@ -6,11 +6,6 @@ from .text_processing import preprocess_text
 from .search_utils import PROJECT_ROOT
 from collections import defaultdict, Counter
 
-CACHE_DIR = os.path.join(PROJECT_ROOT, "cache")
-CACHE_INDEX_PATH = os.path.join(CACHE_DIR, "index.pkl")
-CACHE_DOCMAP_PATH = os.path.join(CACHE_DIR, "docmap.pkl")
-CACHE_TERM_FREQ_PATH = os.path.join(CACHE_DIR, "term_frequencies.pkl")
-CACHE_DOC_LENGTHS_PATH = os.path.join(CACHE_DIR, "doc_lengths.pkl")
 BM25_K1 = 1.5
 BM25_B = 0.75
 
@@ -21,6 +16,11 @@ class InvertedIndex:
         self.docmap = {}
         self.term_frequency = defaultdict(Counter)
         self.doc_lengths = {}
+        self.CACHE_DIR = os.path.join(PROJECT_ROOT, "cache")
+        self.CACHE_INDEX_PATH = os.path.join(self.CACHE_DIR, "index.pkl")
+        self.CACHE_DOCMAP_PATH = os.path.join(self.CACHE_DIR, "docmap.pkl")
+        self.CACHE_TERM_FREQ_PATH = os.path.join(self.CACHE_DIR, "term_frequencies.pkl")
+        self.CACHE_DOC_LENGTHS_PATH = os.path.join(self.CACHE_DIR, "doc_lengths.pkl")
 
     def __add_document(self, doc_id: int, text: str) -> None:
         tokenized_text = preprocess_text(text)
@@ -41,44 +41,44 @@ class InvertedIndex:
             self.__add_document(movie["id"], movie_text)
 
     def save(self) -> None:
-        if not os.path.exists(CACHE_DIR):
-            os.makedirs(CACHE_DIR, exist_ok=True)
+        if not os.path.exists(self.CACHE_DIR):
+            os.makedirs(self.CACHE_DIR, exist_ok=True)
 
-        with open(CACHE_INDEX_PATH, "wb") as file:
+        with open(self.CACHE_INDEX_PATH, "wb") as file:
             pickle.dump(self.index, file)
 
-        with open(CACHE_DOCMAP_PATH, "wb") as file:
+        with open(self.CACHE_DOCMAP_PATH, "wb") as file:
             pickle.dump(self.docmap, file)
 
-        with open(CACHE_TERM_FREQ_PATH, "wb") as file:
+        with open(self.CACHE_TERM_FREQ_PATH, "wb") as file:
             pickle.dump(self.term_frequency, file)
 
-        with open(CACHE_DOC_LENGTHS_PATH, "wb") as file:
+        with open(self.CACHE_DOC_LENGTHS_PATH, "wb") as file:
             pickle.dump(self.doc_lengths, file)
 
     def load(self) -> None:
-        if not os.path.exists(CACHE_INDEX_PATH):
-            raise FileNotFoundError(f"{CACHE_INDEX_PATH} not found")
+        if not os.path.exists(self.CACHE_INDEX_PATH):
+            raise FileNotFoundError(f"{self.CACHE_INDEX_PATH} not found")
 
-        if not os.path.exists(CACHE_DOCMAP_PATH):
-            raise FileNotFoundError(f"{CACHE_DOCMAP_PATH} not found")
+        if not os.path.exists(self.CACHE_DOCMAP_PATH):
+            raise FileNotFoundError(f"{self.CACHE_DOCMAP_PATH} not found")
 
-        if not os.path.exists(CACHE_TERM_FREQ_PATH):
-            raise FileNotFoundError(f"{CACHE_TERM_FREQ_PATH} not found")
+        if not os.path.exists(self.CACHE_TERM_FREQ_PATH):
+            raise FileNotFoundError(f"{self.CACHE_TERM_FREQ_PATH} not found")
 
-        if not os.path.exists(CACHE_DOC_LENGTHS_PATH):
-            raise FileNotFoundError(f"{CACHE_DOC_LENGTHS_PATH} not found")
+        if not os.path.exists(self.CACHE_DOC_LENGTHS_PATH):
+            raise FileNotFoundError(f"{self.CACHE_DOC_LENGTHS_PATH} not found")
 
-        with open(CACHE_INDEX_PATH, "rb") as file:
+        with open(self.CACHE_INDEX_PATH, "rb") as file:
             self.index = pickle.load(file)
 
-        with open(CACHE_DOCMAP_PATH, "rb") as file:
+        with open(self.CACHE_DOCMAP_PATH, "rb") as file:
             self.docmap = pickle.load(file)
 
-        with open(CACHE_TERM_FREQ_PATH, "rb") as file:
+        with open(self.CACHE_TERM_FREQ_PATH, "rb") as file:
             self.term_frequency = pickle.load(file)
 
-        with open(CACHE_DOC_LENGTHS_PATH, "rb") as file:
+        with open(self.CACHE_DOC_LENGTHS_PATH, "rb") as file:
             self.doc_lengths = pickle.load(file)
 
     def get_documents(self, term: str) -> list[str]:
@@ -141,14 +141,16 @@ class InvertedIndex:
 
     def bm25(self, doc_id: int, term: str) -> float:
         return self.get_bm25_idf(term) * self.get_bm25_tf(doc_id, term)
-    
-    def bm25_search(self, query: str, limit:int) -> list[dict, float]:
+
+    def bm25_search(self, query: str, limit: int) -> list[(dict, float)]:
         tokenized_query = preprocess_text(query)
         scores = defaultdict(int)
         for doc in self.docmap:
             for token in tokenized_query:
                 scores[doc] += self.bm25(doc, token)
-        top_sorted_scores = dict(sorted(scores.items(), key=lambda item:item[1], reverse=True)[:limit])
+        top_sorted_scores = dict(
+            sorted(scores.items(), key=lambda item: item[1], reverse=True)[:limit]
+        )
         result = []
         for id, score in top_sorted_scores.items():
             result.append((self.docmap[id], score))

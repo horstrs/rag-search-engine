@@ -5,9 +5,6 @@ import os
 from sentence_transformers import SentenceTransformer
 from .search_utils import PROJECT_ROOT, load_movies
 
-CACHE_DIR = os.path.join(PROJECT_ROOT, "cache")
-CACHE_MOVIE_EMBEDDINGS = os.path.join(CACHE_DIR, "movie_embeddings.npy")
-
 
 class SemanticSearch:
     def __init__(self, model_name="all-MiniLM-L6-v2") -> None:
@@ -15,6 +12,10 @@ class SemanticSearch:
         self.embeddings = None
         self.documents = None
         self.document_map = {}
+        self.CACHE_DIR = os.path.join(PROJECT_ROOT, "cache")
+        self.CACHE_MOVIE_EMBEDDINGS = os.path.join(
+            self.CACHE_DIR, "movie_embeddings.npy"
+        )
 
     def _initialize_docs(self, documents: list[dict]) -> list[str]:
         self.documents = documents
@@ -22,17 +23,17 @@ class SemanticSearch:
         return [f"{d['title']}: {d['description']}" for d in documents]
 
     def _save(self) -> None:
-        if not os.path.exists(CACHE_DIR):
-            os.makedirs(CACHE_DIR, exist_ok=True)
+        if not os.path.exists(self.CACHE_DIR):
+            os.makedirs(self.CACHE_DIR, exist_ok=True)
 
-        with open(CACHE_MOVIE_EMBEDDINGS, "wb") as file:
+        with open(self.CACHE_MOVIE_EMBEDDINGS, "wb") as file:
             np.save(file, self.embeddings)
 
     def _load(self) -> None:
-        if not os.path.exists(CACHE_MOVIE_EMBEDDINGS):
-            raise FileNotFoundError(f"{CACHE_MOVIE_EMBEDDINGS} not found")
+        if not os.path.exists(self.CACHE_MOVIE_EMBEDDINGS):
+            raise FileNotFoundError(f"{self.CACHE_MOVIE_EMBEDDINGS} not found")
 
-        with open(CACHE_MOVIE_EMBEDDINGS, "rb") as file:
+        with open(self.CACHE_MOVIE_EMBEDDINGS, "rb") as file:
             self.embeddings = np.load(file)
 
     def build_embeddings(self, documents: list[dict]) -> np.ndarray:
@@ -42,7 +43,7 @@ class SemanticSearch:
         return self.embeddings
 
     def load_or_create_embeddings(self, documents: list[dict]) -> np.ndarray:
-        if os.path.exists(CACHE_MOVIE_EMBEDDINGS):
+        if os.path.exists(self.CACHE_MOVIE_EMBEDDINGS):
             self._load()
             if len(self.embeddings) == len(documents):
                 self._initialize_docs(documents)

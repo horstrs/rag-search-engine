@@ -3,11 +3,9 @@ import re
 import os
 import json
 
-from .semantic_search import SemanticSearch, CACHE_DIR, cosine_similarity
+from .semantic_search import SemanticSearch, cosine_similarity
 from .search_utils import load_movies
 
-CACHE_CHUNK_EMBEDDINGS = os.path.join(CACHE_DIR, "chunk_embeddings.npy")
-CACHE_CHUNK_METADATA = os.path.join(CACHE_DIR, "chunk_metadata.json")
 SCORE_PRECISION = 10
 
 
@@ -16,13 +14,19 @@ class ChunkedSemanticSearch(SemanticSearch):
         super().__init__(model_name)
         self.chunk_embeddings = None
         self.chunk_metadata = None
+        self.CACHE_CHUNK_EMBEDDINGS = os.path.join(
+            self.CACHE_DIR, "chunk_embeddings.npy"
+        )
+        self.CACHE_CHUNK_METADATA = os.path.join(
+            self.CACHE_DIR, "chunk_metadata.json"
+        )
 
     def _save_chunk(self, total_chunks) -> None:
-        os.makedirs(CACHE_DIR, exist_ok=True)
+        os.makedirs(self.CACHE_DIR, exist_ok=True)
 
-        with open(CACHE_CHUNK_EMBEDDINGS, "wb") as file:
+        with open(self.CACHE_CHUNK_EMBEDDINGS, "wb") as file:
             np.save(file, self.chunk_embeddings)
-        with open(CACHE_CHUNK_METADATA, "w") as file:
+        with open(self.CACHE_CHUNK_METADATA, "w") as file:
             json.dump(
                 {"chunks": self.chunk_metadata, "total_chunks": total_chunks},
                 file,
@@ -30,16 +34,16 @@ class ChunkedSemanticSearch(SemanticSearch):
             )
 
     def _load_chunk(self) -> None:
-        if not os.path.exists(CACHE_CHUNK_EMBEDDINGS):
-            raise FileNotFoundError(f"{CACHE_CHUNK_EMBEDDINGS} not found")
+        if not os.path.exists(self.CACHE_CHUNK_EMBEDDINGS):
+            raise FileNotFoundError(f"{self.CACHE_CHUNK_EMBEDDINGS} not found")
 
-        with open(CACHE_CHUNK_EMBEDDINGS, "rb") as file:
+        with open(self.CACHE_CHUNK_EMBEDDINGS, "rb") as file:
             self.chunk_embeddings = np.load(file)
 
-        if not os.path.exists(CACHE_CHUNK_METADATA):
-            raise FileNotFoundError(f"{CACHE_CHUNK_METADATA} not found")
+        if not os.path.exists(self.CACHE_CHUNK_METADATA):
+            raise FileNotFoundError(f"{self.CACHE_CHUNK_METADATA} not found")
 
-        with open(CACHE_CHUNK_METADATA, "r") as file:
+        with open(self.CACHE_CHUNK_METADATA, "r") as file:
             data = json.load(file)
             self.chunk_metadata = data["chunks"]
 
@@ -47,7 +51,7 @@ class ChunkedSemanticSearch(SemanticSearch):
         self._initialize_docs(documents)
         all_chunks = []
         chunk_metadata = []
-        for movie_idx, doc in enumerate(documents):
+        for movie_idx, doc in enumerate(documents, 1):
             if not doc.get("description"):
                 continue
             doc_chunks = semantic_chunk_text(doc.get("description"), 4, 1)
@@ -66,7 +70,7 @@ class ChunkedSemanticSearch(SemanticSearch):
         return self.chunk_embeddings
 
     def load_or_create_chunk_embeddings(self, documents: list[dict]) -> np.ndarray:
-        if os.path.exists(CACHE_CHUNK_EMBEDDINGS):
+        if os.path.exists(self.CACHE_CHUNK_EMBEDDINGS):
             self._initialize_docs(documents)
             self._load_chunk()
             return self.chunk_embeddings
@@ -86,7 +90,7 @@ class ChunkedSemanticSearch(SemanticSearch):
         for chunk_score in all_chunk_scores:
             movie_idx = chunk_score["movie_idx"]
             score = chunk_score["score"]
-            movie = self.documents[movie_idx]
+            movie = self.document_map[movie_idx]
             if (
                 movie_idx not in all_movies_scores
                 or score > all_movies_scores[movie_idx]["score"]
