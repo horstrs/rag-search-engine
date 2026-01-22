@@ -28,7 +28,10 @@ def main():
             fetched_movies, testcase["relevant_docs"]
         )
         precision = len(relevant_retrieved) / len(test_results)
-        log_results(query, limit, precision, fetched_movies, testcase["relevant_docs"])
+        recall = len(relevant_retrieved) / len(testcase["relevant_docs"])
+        log_results(
+            query, limit, precision, recall, fetched_movies, testcase["relevant_docs"]
+        )
 
 
 def get_relevants_for_testcase(
@@ -39,12 +42,18 @@ def get_relevants_for_testcase(
 
 
 def log_results(
-    query: str, k: int, precision: float, retrieved: list[str], relevant: list[str]
+    query: str,
+    k: int,
+    precision: float,
+    recall: float,
+    retrieved: list[str],
+    relevant: list[str],
 ) -> None:
     print(f"- Query: {query}")
     print(f"  - Precision@{k}: {precision:.4f}")
-    print(f"  - Retrieved: {", ".join(retrieved)}")
-    print(f"  - Relevant: {", ".join(relevant)}")
+    print(f"  - Recall@{k}: {recall:.4f}")
+    print(f"  - Retrieved: {', '.join(retrieved)}")
+    print(f"  - Relevant: {', '.join(relevant)}")
 
 
 if __name__ == "__main__":
