@@ -29,8 +29,9 @@ def main():
         )
         precision = len(relevant_retrieved) / len(test_results)
         recall = len(relevant_retrieved) / len(testcase["relevant_docs"])
+        f1_score = 2 * (precision * recall) / (precision + recall)
         log_results(
-            query, limit, precision, recall, fetched_movies, testcase["relevant_docs"]
+            query, limit, precision, recall, f1_score, fetched_movies, testcase["relevant_docs"]
         )
 
 
@@ -46,12 +47,14 @@ def log_results(
     k: int,
     precision: float,
     recall: float,
+    f1_score: float,
     retrieved: list[str],
     relevant: list[str],
 ) -> None:
     print(f"- Query: {query}")
     print(f"  - Precision@{k}: {precision:.4f}")
     print(f"  - Recall@{k}: {recall:.4f}")
+    print(f"  - F1 Score: {f1_score:.4f}")
     print(f"  - Retrieved: {', '.join(retrieved)}")
     print(f"  - Relevant: {', '.join(relevant)}")
 
