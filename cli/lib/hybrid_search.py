@@ -88,7 +88,7 @@ class HybridSearch:
             "hybrid_score": 0,
         }
 
-    def rrf_search(self, query: str, k: int, limit: int = 10) -> list[dict]:
+    def rrf_search(self, query: str, k: int, limit: int = 10) -> list[(int, dict)]:
         bm25_results = self._bm25_search(query, limit * self.TIMES_OVER_LIMIT)
 
         rrf_ranks = {}
