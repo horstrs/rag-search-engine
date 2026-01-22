@@ -64,6 +64,13 @@ def main() -> None:
         help="Number of search hits to be returned",
     )
 
+    rrf_search_parser.add_argument(
+        "--enhance",
+        type=str,
+        choices=["spell", "rewrite", "expand"],
+        help="Query enhancement method",
+    )
+
     args = parser.parse_args()
 
     match args.command:
@@ -81,8 +88,8 @@ def main() -> None:
                 )
                 print(f"   {hit['document']['description'][:100]}")
         case "rrf-search":
-            hits = rrf_search_command(args.query, args.k, args.limit)
-            for i, hit in enumerate(hits,1):
+            hits = rrf_search_command(args.query, args.k, args.limit, args.enhance)
+            for i, hit in enumerate(hits, 1):
                 print(f"{i}. {hit['document']['title']}")
                 print(f"   RRF Score: {hit['rrf_score']:.4f}")
                 print(

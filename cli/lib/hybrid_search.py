@@ -3,6 +3,7 @@ import os
 from .search_utils import load_movies
 from .keyword_search import InvertedIndex
 from .chunked_semantic_search import ChunkedSemanticSearch
+from .gemini_integration import GeminiClient
 
 
 class HybridSearch:
@@ -10,6 +11,7 @@ class HybridSearch:
         self.documents = documents
         self.semantic_search = ChunkedSemanticSearch()
         self.semantic_search.load_or_create_chunk_embeddings(documents)
+        self.TIMES_OVER_LIMIT = 500
 
         self.idx = InvertedIndex()
         if not os.path.exists(self.idx.CACHE_INDEX_PATH):
@@ -26,8 +28,7 @@ class HybridSearch:
         return alpha * bm25_score + (1 - alpha) * semantic_score
 
     def weighted_search(self, query: str, alpha: float, limit: int = 5) -> list[dict]:
-        TIMES_OVER_LIMIT = 500
-        bm25_results = self._bm25_search(query, limit * TIMES_OVER_LIMIT)
+        bm25_results = self._bm25_search(query, limit * self.TIMES_OVER_LIMIT)
         bm25_scores = [score for _, score in bm25_results]
         bm25_normalized = self.normalize(bm25_scores)
 
@@ -38,7 +39,7 @@ class HybridSearch:
                 weighted_results, movie, keyword_score=bm25_normalized[i]
             )
         semantic_results = self.semantic_search.search_chunks(
-            query, limit * TIMES_OVER_LIMIT
+            query, limit * self.TIMES_OVER_LIMIT
         )
         semantic_scores = [result["score"] for result in semantic_results]
         semantic_normalized = self.normalize(semantic_scores)
@@ -85,8 +86,7 @@ class HybridSearch:
         }
 
     def rrf_search(self, query: str, k: int, limit: int = 10) -> list[dict]:
-        TIMES_OVER_LIMIT = 500
-        bm25_results = self._bm25_search(query, limit * TIMES_OVER_LIMIT)
+        bm25_results = self._bm25_search(query, limit * self.TIMES_OVER_LIMIT)
 
         rrf_ranks = {}
         for i, (movie, _) in enumerate(bm25_results, 1):
@@ -95,13 +95,13 @@ class HybridSearch:
             self._update_bm25_rank_and_score(rrf_ranks, movie_id, i, k)
 
         semantic_results = self.semantic_search.search_chunks(
-            query, limit * TIMES_OVER_LIMIT
+            query, limit * self.TIMES_OVER_LIMIT
         )
 
         for i, sem_result in enumerate(semantic_results, 1):
             movie_id = sem_result["id"]
             if not rrf_ranks.get(movie_id):
-                movie = self.idx.docmap["movie_id"]
+                movie = self.idx.docmap[movie_id]
                 self._create_rrf_entry(rrf_ranks, movie_id, movie)
             self._update_semantic_rank_and_score(rrf_ranks, movie_id, i, k)
 
@@ -157,7 +157,35 @@ def weighted_search_command(query: str, alpha: float, limit: int) -> list[dict]:
     return search_instance.weighted_search(query, alpha, limit)
 
 
-def rrf_search_command(query: str, k: float, limit: int) -> list[dict]:
+def rrf_search_command(
+    query: str, k: float, limit: int, enhance_method: str
+) -> list[dict]:
+    match enhance_method:
+        case "spell":
+            gemini_client = GeminiClient()
+            enhanced_query = gemini_client.fix_spelling(query)
+            if enhanced_query != query:
+                print(
+                    f"Enhanced query ({enhance_method}): '{query}' -> '{enhanced_query}'\n"
+                )
+                query = enhanced_query
+        case "rewrite":
+            gemini_client = GeminiClient()
+            enhanced_query = gemini_client.rewrite_query(query)
+            if enhanced_query != query:
+                print(
+                    f"Enhanced query ({enhance_method}): '{query}' -> '{enhanced_query}'\n"
+                )
+                query = enhanced_query
+        case "expand":
+            gemini_client = GeminiClient()
+            enhanced_query = gemini_client.expand_query(query)
+            if enhanced_query != query:
+                print(
+                    f"Enhanced query ({enhance_method}): '{query}' -> '{enhanced_query}'\n"
+                )
+                query = enhanced_query
+
     movies = load_movies()
     search_instance = HybridSearch(movies)
     return search_instance.rrf_search(query, k, limit)
