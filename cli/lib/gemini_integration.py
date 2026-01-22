@@ -1,4 +1,5 @@
 import os
+import json
 
 from dotenv import load_dotenv
 from google import genai
@@ -96,21 +97,25 @@ Score:"""
         )
         return float(response.text)
 
+    def batch_rerank(self, query: str, doc_list: list[str]):
+        prompt = f"""Rank these movies by relevance to the search query.
 
-# import os
-# from dotenv import load_dotenv
-# from google import genai
+Query: "{query}"
 
-# load_dotenv()
-# api_key = os.environ.get("GEMINI_API_KEY")
-# MODEL = "gemini-2.5-flash"
+Movies:
+{doc_list}
 
-# client = genai.Client(api_key=api_key)
+Return ONLY the IDs in order of relevance (best match first). Return a valid JSON list, nothing else. For example:
 
-# prompt = "Why is Boot.dev such a great place to learn about RAG? Use one paragraph maximum."
+[75, 12, 34, 2, 1]
+"""
+        response = self.client.models.generate_content(
+            model=self.model,
+            contents=prompt,
+            config=genai.types.GenerateContentConfig(
+                response_mime_type="application/json"
+            ),
+        )
 
-# response = client.models.generate_content(model=MODEL, contents=prompt)
-
-# print(response.text)
-# print(f"Prompt Tokens: {response.usage_metadata.prompt_token_count}")
-# print(f"Response Tokens: {response.usage_metadata.candidates_token_count}")
+        return json.loads(response.text)
+        

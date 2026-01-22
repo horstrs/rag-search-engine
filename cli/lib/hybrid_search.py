@@ -1,5 +1,5 @@
 import os
-import time
+import json
 
 from .search_utils import load_movies
 from .keyword_search import InvertedIndex
@@ -107,7 +107,7 @@ class HybridSearch:
             self._update_semantic_rank_and_score(rrf_ranks, movie_id, i, k)
 
         sorted_rank = sorted(
-            rrf_ranks.values(), key=lambda result: result["rrf_score"], reverse=True
+            rrf_ranks.items(), key=lambda result: result[1]["rrf_score"], reverse=True
         )
         return sorted_rank[:limit]
 
@@ -187,10 +187,9 @@ def rrf_search_command(
                 )
                 query = enhanced_query
 
-    match rerank_method:
-        case "individual":
-            original_limit = limit
-            limit *= 5
+    if rerank_method:
+        original_limit = limit
+        limit *= 5
 
     movies = load_movies()
     search_instance = HybridSearch(movies)
@@ -198,16 +197,34 @@ def rrf_search_command(
 
     match rerank_method:
         case "individual":
-            print(f"Reranking top {original_limit} results using individual method...")
+            print(
+                f"Reranking top {original_limit} results using {rerank_method} method..."
+            )
             print(f"Reciprocal Rank Fusion Results for '{query}' (k={k}):")
-            for result in results:
+            for _, result in results:
                 gemini_client = GeminiClient()
                 rerank_score = gemini_client.individual_rerank(
                     query, result["document"]
                 )
                 result["rerank_score"] = rerank_score
 
-            results.sort(key=lambda movie: movie["rerank_score"], reverse=True)
+            results.sort(key=lambda movie: movie[1]["rerank_score"], reverse=True)
+            results = results[:original_limit]
+        case "batch":
+            print(
+                f"Reranking top {original_limit} results using {rerank_method} method..."
+            )
+            print(f"Reciprocal Rank Fusion Results for '{query}' (k={k}):")
+            doc_list = [result["document"] for _, result in results]
+            gemini_client = GeminiClient()
+            reranked_ids = gemini_client.batch_rerank(query, doc_list)
+
+            look_up = {item[0]: item for item in results}
+            results = [
+                (id, look_up[id][1] | {"rerank_rank": i})
+                for i, id in enumerate(reranked_ids, 1)
+            ]
             results = results[:original_limit]
 
+    results = [result[1] for result in results]
     return results

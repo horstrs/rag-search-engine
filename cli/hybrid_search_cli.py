@@ -74,7 +74,7 @@ def main() -> None:
     rrf_search_parser.add_argument(
         "--rerank-method",
         type=str,
-        choices=["individual"],
+        choices=["individual", "batch"],
         help="Results reranking method using LLM",
     )
 
@@ -102,6 +102,8 @@ def main() -> None:
                 print(f"{i}. {hit['document']['title']}")
                 if hit.get("rerank_score"):
                     print(f"   Rerank Score: {hit.get('rerank_score'):.3f}/10")
+                if hit.get("rerank_rank"):
+                    print(f"   Rerank Rank: {hit.get('rerank_rank')}")    
                 print(f"   RRF Score: {hit['rrf_score']:.4f}")
                 print(
                     f"   BM25 Rank: {hit['bm25_rank']}, Semantic Rank: {hit['semantic_rank']}"
