@@ -10,6 +10,7 @@ class GeminiClient:
         api_key = os.environ.get("GEMINI_API_KEY")
         self.client = genai.Client(api_key=api_key)
         self.model = model
+        self.rerank_precision = 3
 
     def fix_spelling(self, query: str) -> str:
         prompt = f"""Fix any spelling errors in this movie search query.
@@ -73,6 +74,27 @@ Return only the expanded query, don't add anything before or after the query
             model=self.model, contents=prompt
         )
         return response.text
+
+    def individual_rerank(self, query: str, movie: dict) -> str:
+        prompt = f"""Rate how well this movie matches the search query.
+
+Query: "{query}"
+Movie: {movie.get("title", "")} - {movie.get("document", "")}
+
+Consider:
+- Direct relevance to query
+- User intent (what they're looking for)
+- Content appropriateness
+
+Rate 0-10 (10 = perfect match).
+Give me ONLY the number in your response, no other text or explanation.
+The score should be a float with up to {self.rerank_precision} decimal points of precision
+
+Score:"""
+        response = self.client.models.generate_content(
+            model=self.model, contents=prompt
+        )
+        return float(response.text)
 
 
 # import os

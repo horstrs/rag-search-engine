@@ -71,6 +71,13 @@ def main() -> None:
         help="Query enhancement method",
     )
 
+    rrf_search_parser.add_argument(
+        "--rerank-method",
+        type=str,
+        choices=["individual"],
+        help="Results reranking method using LLM",
+    )
+
     args = parser.parse_args()
 
     match args.command:
@@ -88,9 +95,13 @@ def main() -> None:
                 )
                 print(f"   {hit['document']['description'][:100]}")
         case "rrf-search":
-            hits = rrf_search_command(args.query, args.k, args.limit, args.enhance)
+            hits = rrf_search_command(
+                args.query, args.k, args.limit, args.enhance, args.rerank_method
+            )
             for i, hit in enumerate(hits, 1):
                 print(f"{i}. {hit['document']['title']}")
+                if hit.get("rerank_score"):
+                    print(f"   Rerank Score: {hit.get('rerank_score'):.3f}/10")
                 print(f"   RRF Score: {hit['rrf_score']:.4f}")
                 print(
                     f"   BM25 Rank: {hit['bm25_rank']}, Semantic Rank: {hit['semantic_rank']}"

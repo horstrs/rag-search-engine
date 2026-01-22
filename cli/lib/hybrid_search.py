@@ -1,4 +1,5 @@
 import os
+import time
 
 from .search_utils import load_movies
 from .keyword_search import InvertedIndex
@@ -158,7 +159,7 @@ def weighted_search_command(query: str, alpha: float, limit: int) -> list[dict]:
 
 
 def rrf_search_command(
-    query: str, k: float, limit: int, enhance_method: str
+    query: str, k: float, limit: int, enhance_method: str, rerank_method: str
 ) -> list[dict]:
     match enhance_method:
         case "spell":
@@ -186,6 +187,27 @@ def rrf_search_command(
                 )
                 query = enhanced_query
 
+    match rerank_method:
+        case "individual":
+            original_limit = limit
+            limit *= 5
+
     movies = load_movies()
     search_instance = HybridSearch(movies)
-    return search_instance.rrf_search(query, k, limit)
+    results = search_instance.rrf_search(query, k, limit)
+
+    match rerank_method:
+        case "individual":
+            print(f"Reranking top {original_limit} results using individual method...")
+            print(f"Reciprocal Rank Fusion Results for '{query}' (k={k}):")
+            for result in results:
+                gemini_client = GeminiClient()
+                rerank_score = gemini_client.individual_rerank(
+                    query, result["document"]
+                )
+                result["rerank_score"] = rerank_score
+
+            results.sort(key=lambda movie: movie["rerank_score"], reverse=True)
+            results = results[:original_limit]
+
+    return results
