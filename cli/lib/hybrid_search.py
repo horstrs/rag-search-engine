@@ -1,10 +1,12 @@
 import os
-import json
 
 from .search_utils import load_movies
 from .keyword_search import InvertedIndex
 from .chunked_semantic_search import ChunkedSemanticSearch
 from .gemini_integration import GeminiClient
+from sentence_transformers import CrossEncoder
+
+CROSS_ENCODER_MODEL = "cross-encoder/ms-marco-TinyBERT-L2-v2"
 
 
 class HybridSearch:
@@ -223,6 +225,23 @@ def rrf_search_command(
             results = [
                 (id, look_up[id][1] | {"rerank_rank": i})
                 for i, id in enumerate(reranked_ids, 1)
+            ]
+            results = results[:original_limit]
+        case "cross_encoder":
+            cross_encoder = CrossEncoder(CROSS_ENCODER_MODEL)
+            pairs_with_ids = [
+                (doc_id, (query, f"{doc.get('title', '')} - {doc.get('document', '')}"))
+                for doc_id, doc in results
+            ]
+            pairs = [item[1] for item in pairs_with_ids]
+            # scores is a list of numbers, one for each pair
+            scores = cross_encoder.predict(pairs)
+            scored_pairs = list(zip(scores, pairs_with_ids))
+            scored_pairs.sort(key=lambda x: x[0], reverse=True)
+            look_up = {item[0]: item for item in results}
+            results = [
+                (doc_id, look_up[doc_id][1] | {"cross_encoder_score": score})
+                for score, (doc_id, (_, document)) in scored_pairs
             ]
             results = results[:original_limit]
 

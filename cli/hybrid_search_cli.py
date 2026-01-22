@@ -74,7 +74,7 @@ def main() -> None:
     rrf_search_parser.add_argument(
         "--rerank-method",
         type=str,
-        choices=["individual", "batch"],
+        choices=["individual", "batch", "cross_encoder"],
         help="Results reranking method using LLM",
     )
 
@@ -104,6 +104,8 @@ def main() -> None:
                     print(f"   Rerank Score: {hit.get('rerank_score'):.3f}/10")
                 if hit.get("rerank_rank"):
                     print(f"   Rerank Rank: {hit.get('rerank_rank')}")    
+                if hit.get("cross_encoder_score"):
+                    print(f"   Corss Encoder Score: {hit.get('cross_encoder_score'):.3f}")    
                 print(f"   RRF Score: {hit['rrf_score']:.4f}")
                 print(
                     f"   BM25 Rank: {hit['bm25_rank']}, Semantic Rank: {hit['semantic_rank']}"
