@@ -7,7 +7,7 @@ from .gemini_integration import GeminiClient
 from sentence_transformers import CrossEncoder
 
 CROSS_ENCODER_MODEL = "cross-encoder/ms-marco-TinyBERT-L2-v2"
-
+DEFAULT_K = 60
 
 class HybridSearch:
     def __init__(self, documents):
@@ -15,6 +15,7 @@ class HybridSearch:
         self.semantic_search = ChunkedSemanticSearch()
         self.semantic_search.load_or_create_chunk_embeddings(documents)
         self.TIMES_OVER_LIMIT = 500
+        
 
         self.idx = InvertedIndex()
         if not os.path.exists(self.idx.CACHE_INDEX_PATH):
@@ -91,7 +92,7 @@ class HybridSearch:
         }
 
     def rrf_search(
-        self, query: str, k: int, limit: int = 10, debug: bool = False
+        self, query: str, k: int = DEFAULT_K, limit: int = 10, debug: bool = False
     ) -> list[(int, dict)]:
         bm25_results = self._bm25_search(query, limit * self.TIMES_OVER_LIMIT, debug)
         rrf_ranks = {}

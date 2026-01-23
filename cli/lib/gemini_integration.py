@@ -147,3 +147,18 @@ Return ONLY the scores in the same order you were given the documents. Return a 
         )
 
         return json.loads(response.text)
+
+    def rag(self, query: str, docs: list[str]) -> str:
+        prompt = f"""Answer the question or provide information based on the provided documents. This should be tailored to Hoopla users. Hoopla is a movie streaming service.
+
+Query: {query}
+
+Documents:
+{docs}
+
+Provide a comprehensive answer that addresses the query:"""
+
+        response = self.client.models.generate_content(
+            model=self.model, contents=prompt
+        )
+        return response.text
