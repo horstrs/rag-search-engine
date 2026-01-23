@@ -78,6 +78,12 @@ def main() -> None:
         help="Results reranking method using LLM",
     )
 
+    rrf_search_parser.add_argument(
+        "--debug",
+        action="store_true",
+        help="Print debug statements",
+    )
+
     args = parser.parse_args()
 
     match args.command:
@@ -96,7 +102,7 @@ def main() -> None:
                 print(f"   {hit['document']['description'][:100]}")
         case "rrf-search":
             hits = rrf_search_command(
-                args.query, args.k, args.limit, args.enhance, args.rerank_method
+                args.query, args.k, args.limit, args.enhance, args.rerank_method, args.debug
             )
             for i, hit in enumerate(hits, 1):
                 print(f"{i}. {hit['document']['title']}")

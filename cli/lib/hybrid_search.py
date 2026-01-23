@@ -21,9 +21,11 @@ class HybridSearch:
             self.idx.build()
             self.idx.save()
 
-    def _bm25_search(self, query: str, limit: int) -> list[(dict, float)]:
+    def _bm25_search(
+        self, query: str, limit: int, debug: bool = False
+    ) -> list[(dict, float)]:
         self.idx.load()
-        return self.idx.bm25_search(query, limit)
+        return self.idx.bm25_search(query, limit, debug)
 
     def hybrid_score(
         self, bm25_score: float, semantic_score: float, alpha: float = 0.5
@@ -88,29 +90,40 @@ class HybridSearch:
             "hybrid_score": 0,
         }
 
-    def rrf_search(self, query: str, k: int, limit: int = 10) -> list[(int, dict)]:
-        bm25_results = self._bm25_search(query, limit * self.TIMES_OVER_LIMIT)
-
+    def rrf_search(
+        self, query: str, k: int, limit: int = 10, debug: bool = False
+    ) -> list[(int, dict)]:
+        bm25_results = self._bm25_search(query, limit * self.TIMES_OVER_LIMIT, debug)
         rrf_ranks = {}
         for i, (movie, _) in enumerate(bm25_results, 1):
             movie_id = movie["id"]
             self._create_rrf_entry(rrf_ranks, movie_id, movie)
             self._update_bm25_rank_and_score(rrf_ranks, movie_id, i, k)
-
+        if debug:
+            print("keyword results:")
+            titles = [movie["title"] for movie, _ in bm25_results]
+            print(titles)
+            
         semantic_results = self.semantic_search.search_chunks(
             query, limit * self.TIMES_OVER_LIMIT
         )
-
         for i, sem_result in enumerate(semantic_results, 1):
             movie_id = sem_result["id"]
             if not rrf_ranks.get(movie_id):
                 movie = self.idx.docmap[movie_id]
                 self._create_rrf_entry(rrf_ranks, movie_id, movie)
             self._update_semantic_rank_and_score(rrf_ranks, movie_id, i, k)
-
+        if debug:
+            print("semantic results:")
+            titles = [movie["title"] for movie in semantic_results]
+            print(titles)
         sorted_rank = sorted(
             rrf_ranks.items(), key=lambda result: result[1]["rrf_score"], reverse=True
         )
+        if debug:
+            print("RRF Score Sorted Rank")
+            titles = [doc["document"]["title"] for _, doc in sorted_rank]
+            print(titles)
         return sorted_rank[:limit]
 
     def _create_rrf_entry(self, rrf_ranks: dict, movie_id: int, movie: dict) -> None:
@@ -161,7 +174,12 @@ def weighted_search_command(query: str, alpha: float, limit: int) -> list[dict]:
 
 
 def rrf_search_command(
-    query: str, k: float, limit: int, enhance_method: str, rerank_method: str
+    query: str,
+    k: float,
+    limit: int,
+    enhance_method: str,
+    rerank_method: str,
+    debug: bool = False,
 ) -> list[dict]:
     match enhance_method:
         case "spell":
@@ -195,7 +213,7 @@ def rrf_search_command(
 
     movies = load_movies()
     search_instance = HybridSearch(movies)
-    results = search_instance.rrf_search(query, k, limit)
+    results = search_instance.rrf_search(query, k, limit, debug)
 
     match rerank_method:
         case "individual":
@@ -233,6 +251,10 @@ def rrf_search_command(
                 (doc_id, (query, f"{doc.get('title', '')} - {doc.get('document', '')}"))
                 for doc_id, doc in results
             ]
+            if debug:
+                print("Results before cross_encoder:")
+                titles = [doc["document"]["title"] for _, doc in results]
+                print(titles)
             pairs = [item[1] for item in pairs_with_ids]
             # scores is a list of numbers, one for each pair
             scores = cross_encoder.predict(pairs)
@@ -243,6 +265,10 @@ def rrf_search_command(
                 (doc_id, look_up[doc_id][1] | {"cross_encoder_score": score})
                 for score, (doc_id, (_, document)) in scored_pairs
             ]
+            if debug:
+                print("Results after cross_encoder:")
+                titles = [doc["document"]["title"] for _, doc in results]
+                print(titles)
             results = results[:original_limit]
 
     results = [result[1] for result in results]

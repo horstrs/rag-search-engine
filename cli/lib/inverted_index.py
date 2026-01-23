@@ -142,8 +142,10 @@ class InvertedIndex:
     def bm25(self, doc_id: int, term: str) -> float:
         return self.get_bm25_idf(term) * self.get_bm25_tf(doc_id, term)
 
-    def bm25_search(self, query: str, limit: int) -> list[(dict, float)]:
+    def bm25_search(self, query: str, limit: int, debug: bool) -> list[(dict, float)]:
         tokenized_query = preprocess_text(query)
+        if debug:
+            print(tokenized_query)
         scores = defaultdict(int)
         for doc in self.docmap:
             for token in tokenized_query:
