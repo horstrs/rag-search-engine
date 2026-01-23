@@ -5,6 +5,7 @@ from lib.hybrid_search import (
     weighted_search_command,
     rrf_search_command,
 )
+from lib.gemini_integration import GeminiClient
 
 
 def main() -> None:
@@ -84,6 +85,12 @@ def main() -> None:
         help="Print debug statements",
     )
 
+    rrf_search_parser.add_argument(
+        "--evaluate",
+        action="store_true",
+        help="Print debug statements",
+    )
+
     args = parser.parse_args()
 
     match args.command:
@@ -102,21 +109,55 @@ def main() -> None:
                 print(f"   {hit['document']['description'][:100]}")
         case "rrf-search":
             hits = rrf_search_command(
-                args.query, args.k, args.limit, args.enhance, args.rerank_method, args.debug
+                args.query,
+                args.k,
+                args.limit,
+                args.enhance,
+                args.rerank_method,
+                args.debug,
             )
+            formatted_results = []
             for i, hit in enumerate(hits, 1):
+                formatted_line = f"{i}. {hit['document']['title']}"
                 print(f"{i}. {hit['document']['title']}")
                 if hit.get("rerank_score"):
                     print(f"   Rerank Score: {hit.get('rerank_score'):.3f}/10")
+                    formatted_line += (
+                        "\n" + f"   Rerank Score: {hit.get('rerank_score'):.3f}/10"
+                    )
                 if hit.get("rerank_rank"):
-                    print(f"   Rerank Rank: {hit.get('rerank_rank')}")    
+                    print(f"   Rerank Rank: {hit.get('rerank_rank')}")
+                    formatted_line += "\n" + f"   Rerank Rank: {hit.get('rerank_rank')}"
                 if hit.get("cross_encoder_score"):
-                    print(f"   Corss Encoder Score: {hit.get('cross_encoder_score'):.3f}")    
+                    print(
+                        f"   Corss Encoder Score: {hit.get('cross_encoder_score'):.3f}"
+                    )
+                    formatted_line += (
+                        "\n"
+                        + f"   Corss Encoder Score: {hit.get('cross_encoder_score'):.3f}"
+                    )
                 print(f"   RRF Score: {hit['rrf_score']:.4f}")
+                formatted_line += "\n" + f"   RRF Score: {hit['rrf_score']:.4f}"
                 print(
                     f"   BM25 Rank: {hit['bm25_rank']}, Semantic Rank: {hit['semantic_rank']}"
                 )
+                formatted_line += (
+                    "\n"
+                    + f"   BM25 Rank: {hit['bm25_rank']}, Semantic Rank: {hit['semantic_rank']}"
+                )
                 print(f"   {hit['document']['description'][:100]}")
+                formatted_line += "\n" + f"   {hit['document']['description'][:100]}"
+                formatted_results.append(formatted_line)
+            if args.evaluate:
+                gemini_client = GeminiClient()  # TODO: args.query shouldn't be used here, since the query could have been enhanced by LLM inside rrf_search
+                evaluation = gemini_client.evaluate_results(
+                    args.query, formatted_results
+                )
+                print("LLM Evaluation of search results:")
+                for rank, score in enumerate(evaluation, 1):
+                    title = hits[rank-1]['document']['title']
+                    print(f"{rank}. {title}: {score}/3")
+
         case _:
             parser.print_help()
 
