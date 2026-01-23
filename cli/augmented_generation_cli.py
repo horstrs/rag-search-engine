@@ -27,6 +27,20 @@ def main():
         help="Limit of movies to be summarized",
     )
 
+    rag_parser = subparsers.add_parser(
+        "citations",
+        help="Performa an RRF search for a number of movies defined by parameter --limt. Then, generates an answer providing citations based on the search results",
+    )
+    rag_parser.add_argument("query", type=str, help="Search query for rrf search")
+    rag_parser.add_argument(
+        "--limit",
+        type=int,
+        nargs="?",
+        default=5,
+        const=5,
+        help="Limit of movies to be summarized",
+    )
+
     args = parser.parse_args()
     query = args.query
     movies = load_movies()
@@ -53,6 +67,16 @@ def main():
             for title in titles:
                 print(f"  - {title}")
             print("\nLLM Summary:")
+            print(response)
+        case "citations":
+            results = hybrid_search_instance.rrf_search(query, limit=args.limit)
+            results = [hits for _, hits in results]
+            response = gemini_client.citations(query, results)
+            print("Search Results:")
+            titles = [entry["document"]["title"] for entry in results]
+            for title in titles:
+                print(f"  - {title}")
+            print("\nLLM Answer:")
             print(response)
         case _:
             parser.print_help()

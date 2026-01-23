@@ -179,3 +179,33 @@ Provide a comprehensive 3-4 sentence answer that combines information from multi
             model=self.model, contents=prompt
         )
         return response.text
+
+    def citations(self, query: str, docs: list[str]) -> str:
+        prompt = f"""Answer the question or provide information based on the provided documents.
+
+This should be tailored to Hoopla users. Hoopla is a movie streaming service.
+
+If not enough information is available to give a good answer, say so but give as good of an answer as you can while citing the sources you have.
+
+Query: {query}
+
+Documents:
+{docs}
+
+Instructions:
+- Provide a comprehensive answer that addresses the query
+- Cite sources using [1], [2], etc. format when referencing information
+- Add the citations at the end of your answer in a list. Example:
+   -- 1. <document_1_title>
+   -- 2. <document_2_title>
+- Don't skip any number when creating the citations
+- If sources disagree, mention the different viewpoints
+- If the answer isn't in the documents, say "I don't have enough information"
+- Be direct and informative
+
+Answer:"""
+
+        response = self.client.models.generate_content(
+            model=self.model, contents=prompt
+        )
+        return response.text
