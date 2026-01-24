@@ -24,3 +24,8 @@ def load_golden_dataset() -> list[dict]:
     with open(GOLDEN_DATASET_PATH, "r") as file:
         data = json.load(file)
     return data["test_cases"]
+
+
+def load_image(path) -> str:
+    with open(path, "rb") as file:
+        return file.read()

@@ -3,6 +3,7 @@ import json
 
 from dotenv import load_dotenv
 from google import genai
+from google.genai import types
 
 
 class GeminiClient:
@@ -209,3 +210,48 @@ Answer:"""
             model=self.model, contents=prompt
         )
         return response.text
+
+    def question(self, query: str, docs: list[str]) -> str:
+        prompt = f"""Answer the user's question based on the provided movies that are available on Hoopla.
+
+    This should be tailored to Hoopla users. Hoopla is a movie streaming service.
+
+    Question: {query}
+
+    Documents:
+    {docs}
+
+    General instructions:
+    - Answer directly and concisely
+    - Be casual and conversational
+    - Don't be cringe or hype-y
+    - Talk like a normal person would in a chat conversation
+    - Use only information from the documents
+    - If the answer isn't in the documents, say "I don't have enough information"
+    - Cite sources when possible
+
+    Guidance on types of questions:
+    - Factual questions: Provide a direct answer
+    - Analytical questions: Compare and contrast information from the documents
+    - Opinion-based questions: Acknowledge subjectivity and provide a balanced view
+
+    Answer:"""
+
+        response = self.client.models.generate_content(
+            model=self.model, contents=prompt
+        )
+        return response.text
+
+    def rewrite_from_image(self, query: str, image: bytes, mime: str) -> types.GenerateContentResponse:
+        system_prompt = """Given the included image and text query, rewrite the text query to improve search results from a movie database. Make sure to:
+- Synthesize visual and textual information
+- Focus on movie-specific details (actors, scenes, style, etc.)
+- Return only the rewritten query, without any additional commentary
+"""
+        parts = [
+            system_prompt,
+            types.Part.from_bytes(data=image, mime_type=mime),
+            types.Part.from_text(text=query),
+        ]
+        response = self.client.models.generate_content(model=self.model, contents=parts)
+        return response
